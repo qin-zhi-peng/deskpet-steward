@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0C10">
+<title>桌宠总管 · 手机</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/app-256.png">
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<header class="m-head">
+  <div class="m-id">
+    <div class="m-ava"><img src="../assets/pet/xiaojing-portrait-512.png" alt="小鲸"></div>
+    <div class="m-id-main">
+      <div class="m-name">桌宠总管</div>
+      <div class="m-tag" id="mTag">手机入口</div>
+    </div>
+  </div>
+  <div class="m-state st-idle" id="mStateChip"><i class="dot"></i><span id="mState">连接中</span></div>
+  <span class="m-demo" id="mDemo" hidden>演示</span>
+</header>
+
+<main class="m-main" id="mMain">
+  <section class="m-hero">
+    <div class="m-hero-kicker">MOBILE · 手机入口</div>
+    <div class="m-hero-title">出门也能拍板</div>
+    <div class="m-hero-sub" id="mHeroSub">正在连本机总管…</div>
+    <div class="m-stats">
+      <div class="m-stat"><b id="mStatProjects">—</b><span>项目</span></div>
+      <div class="m-stat"><b id="mStatTasks">—</b><span>工单</span></div>
+      <div class="m-stat"><b id="mStatIndex">—</b><span>索引</span></div>
+    </div>
+  </section>
+
+  <section class="m-chat" id="mChat"></section>
+
+  <section class="m-tasks">
+    <header class="m-sec">
+      <span class="m-sec-title">工单</span>
+      <span class="m-sec-count" id="mTaskCount">—</span>
+    </header>
+    <div id="mTaskList"></div>
+  </section>
+
+  <div class="m-foot">桌宠总管 · 本地总管 · 手机版</div>
+</main>
+
+<footer class="m-composer">
+  <div class="m-quick" id="mQuick">
+    <button type="button" data-cmd="现在手上有哪些项目？">哪些项目</button>
+    <button type="button" data-cmd="今晚帮我做三件事：整理本周文件、项目健康检查、写周报">今晚三件事</button>
+    <button type="button" data-cmd="检查重点项目健康度">项目健康度</button>
+  </div>
+  <div class="m-inputrow">
+    <textarea id="mInput" rows="1" maxlength="4000" placeholder="说目标和边界，背景我来交代"></textarea>
+    <button class="m-send" id="mSend" type="button" aria-label="发送">
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 8.2l11.4-5.6-3.9 11-2-4.2-5.5-1.2z" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+  <div class="m-hint"><span>Enter 发送 · Shift+Enter 换行</span><span class="m-mock-hint" id="mMockHint" hidden>演示模式 · 本地模拟</span></div>
+</footer>
+
+<div class="m-toasts" id="mToasts"></div>
+
+<script src="lib/md.js"></script>
+<script src="lib/mock.js"></script>
+<script src="lib/api.js"></script>
+<script src="mobile.js"></script>
+</body>
+</html>

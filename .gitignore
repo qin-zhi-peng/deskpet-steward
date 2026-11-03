@@ -1,0 +1,35 @@
+# 运行时数据（消息 / 工单 / 记忆 / 数据库 / 二维码 / 个人背景）
+data/
+# 产物与备份
+out/
+# 日志
+logs/
+# 临时文件
+tmp/
+
+# 本机配置：目录、端口、品牌名都在这里，因人而异，不进版本库
+config.json
+# 密钥：只放本机
+.env
+.env.local
+.env.*.local
+
+# 依赖
+node_modules/
+pet/node_modules/
+
+# 数据库 / 进程文件
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.pid
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 编辑器
+.vscode/
+.idea/

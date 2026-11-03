@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0C10">
+<title>桌宠总管 · 工作台</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/app-256.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body data-view="chat">
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <img class="brand-seal" src="../assets/brand/seal.svg" alt="桌宠总管印章">
+      <span class="brand-name">桌宠总管</span>
+      <span class="brand-sub mono">WORKBENCH</span>
+      <span class="demo-badge" id="demoBadge" hidden>演示数据</span>
+    </div>
+    <div class="topbar-right">
+      <span class="index-time" id="indexTime">索引 —</span>
+      <span class="state-chip st-idle" id="stateChip"><i class="dot"></i><span id="stateText">连接中</span></span>
+      <button class="btn ghost" id="btnRefresh" type="button" title="重扫项目索引">
+        <svg class="btn-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 8a5.2 5.2 0 1 1-1.6-3.7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M13.4 1.6v3.3h-3.3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="btn-label">刷新索引</span>
+      </button>
+      <button class="btn ghost" id="btnPhone" type="button" title="手机入口">
+        <svg class="btn-ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="4.4" y="1.4" width="7.2" height="13.2" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M6.9 12.6h2.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <span class="btn-label">手机</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="warnbar" id="warnBar" hidden>
+    <span class="warn-ico">!</span>
+    <span class="warn-text" id="warnText"></span>
+    <button class="warn-close" id="warnClose" type="button">知道了</button>
+  </div>
+
+  <main class="cols">
+    <aside class="col col-left" id="paneProjects" data-pane="projects">
+      <div class="card-id"><div id="idcard"></div></div>
+
+      <section class="card sec-careers">
+        <header class="sec-h">
+          <span class="diamond"></span>
+          <span class="sec-title">事业线</span>
+          <span class="sec-count" id="careerCount">—</span>
+          <span class="sec-meta">文件 · 体积 · 改动</span>
+        </header>
+        <div class="career-list" id="careerList"></div>
+      </section>
+
+      <section class="card sec-projects">
+        <header class="sec-h">
+          <span class="diamond"></span>
+          <span class="sec-title">项目</span>
+          <span class="sec-count" id="projCount">—</span>
+        </header>
+        <div class="searchbox">
+          <svg class="search-ico" viewBox="0 0 14 14" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M9.2 9.2L12 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <input id="projectSearch" type="text" placeholder="搜项目 / 路径 / 技术栈" autocomplete="off" spellcheck="false" aria-label="搜索项目">
+          <button class="search-clear" id="searchClear" type="button" hidden aria-label="清空搜索">×</button>
+        </div>
+        <div class="project-list" id="projectList"></div>
+      </section>
+    </aside>
+
+    <section class="card col-mid" id="paneChat" data-pane="chat">
+      <header class="chat-head">
+        <div class="chat-ctx">
+          <div class="ctx-line">
+            <span class="ctx-kicker" id="ctxKicker">当前</span>
+            <span class="ctx-title" id="ctxTitle">全局</span>
+          </div>
+          <div class="ctx-sub" id="ctxSub">我的工作区 · 本地总管</div>
+        </div>
+        <button class="btn tiny ghost" id="btnClearCtx" type="button" hidden>退出项目</button>
+      </header>
+
+      <div class="chat-scroll" id="chatScroll"><div class="chat-inner" id="chatInner"></div></div>
+
+      <div class="composer">
+        <div class="quick" id="quickCmds">
+          <button class="chip" type="button" data-cmd="现在手上有哪些项目？">现在手上有哪些项目</button>
+          <button class="chip" type="button" data-cmd="今晚帮我做三件事：整理本周文件、项目健康检查、写周报">今晚帮我做三件事</button>
+          <button class="chip" type="button" data-cmd="记住：结论先行，不端着">记住：结论先行</button>
+          <button class="chip" type="button" data-cmd="检查重点项目健康度">检查项目健康度</button>
+        </div>
+        <div class="input-row">
+          <textarea id="chatInput" rows="1" maxlength="4000" placeholder="说目标和边界，背景我来交代"></textarea>
+          <button class="send" id="btnSend" type="button" aria-label="发送">
+            <svg viewBox="0 0 16 16" width="17" height="17" aria-hidden="true"><path d="M2 8.2l11.4-5.6-3.9 11-2-4.2-5.5-1.2z" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="composer-hint">
+          <span id="hintText">Enter 发送 · Shift+Enter 换行</span>
+          <span class="mock-hint" id="mockHint" hidden>演示模式 · 回复由本地模拟</span>
+        </div>
+      </div>
+    </section>
+
+    <aside class="col col-right" id="paneTasks" data-pane="tasks">
+      <section class="card">
+        <header class="sec-h">
+          <span class="diamond"></span>
+          <span class="sec-title">工单</span>
+          <span class="sec-count" id="taskCount">—</span>
+          <button class="sec-act" id="btnNewTask" type="button">+ 新建</button>
+        </header>
+        <div class="task-stack" id="taskList"></div>
+      </section>
+
+      <section class="card">
+        <header class="sec-h">
+          <span class="diamond"></span>
+          <span class="sec-title">产物</span>
+          <span class="sec-count" id="artifactCount">—</span>
+        </header>
+        <div class="art-list" id="artifactList"></div>
+      </section>
+
+      <section class="card">
+        <header class="sec-h">
+          <span class="diamond"></span>
+          <span class="sec-title">记忆</span>
+          <span class="sec-count" id="memoryCount">—</span>
+        </header>
+        <div class="mem-list" id="memoryList"></div>
+      </section>
+
+      <section class="card">
+        <header class="sec-h">
+          <span class="diamond"></span>
+          <span class="sec-title">事件</span>
+          <span class="sec-count" id="eventCount">—</span>
+          <span class="sec-live is-off" id="eventLive">未连接</span>
+        </header>
+        <div class="ev-list" id="eventList"></div>
+      </section>
+    </aside>
+  </main>
+
+  <nav class="tabbar" id="tabbar" role="tablist" aria-label="工作台分区">
+    <button type="button" class="tab is-active" data-view="chat" role="tab" aria-selected="true">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4.6h14v9.2H9.4L5.2 17v-3.2H3z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      <span>聊</span>
+    </button>
+    <button type="button" class="tab" data-view="projects" role="tab" aria-selected="false">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.6 5.4h5.2l1.6 2h8v8.2H2.6z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      <span>项目</span>
+    </button>
+    <button type="button" class="tab" data-view="tasks" role="tab" aria-selected="false">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4.5h14M3 10h14M3 15.5h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M15.6 3.4l1.2 1.2-2.4 2.4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>工单</span>
+    </button>
+  </nav>
+</div>
+
+<div class="modal" id="phoneModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="phoneTitle">
+    <button class="modal-close" id="phoneClose" type="button" aria-label="关闭">×</button>
+    <div class="modal-kicker">手机入口</div>
+    <h2 class="modal-title" id="phoneTitle">出门也能拍板</h2>
+    <div class="qr-wrap">
+      <img id="phoneQr" alt="手机入口二维码" hidden>
+      <div class="qr-ph" id="phonePh"></div>
+    </div>
+    <div class="phone-url" id="phoneUrl">—</div>
+    <div class="phone-note" id="phoneNote">同一局域网扫码打开</div>
+    <div class="modal-actions">
+      <button class="btn solid" id="phoneCopy" type="button">复制链接</button>
+      <span class="modal-hint">手机页：单列聊天 + 工单</span>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script src="lib/md.js"></script>
+<script src="lib/mock.js"></script>
+<script src="lib/api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

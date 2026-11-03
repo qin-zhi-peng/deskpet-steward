@@ -1,0 +1,23 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: 脱敏自检（密钥 / 私有路径 / 联系方式）
+        run: node scripts/check-secrets.mjs
+      - name: 语法检查
+        run: |
+          for f in server/*.mjs scripts/*.mjs web/lib/*.js web/*.js pet/*.js pet/*.cjs; do
+            node --check "$f"
+          done
+      - name: 配置示例可解析
+        run: node -e "JSON.parse(require('fs').readFileSync('config.example.json','utf8')); console.log('config.example.json ok')"

@@ -1,0 +1,19 @@
+{
+  "name": "deskpet-steward",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "桌宠 + 本地工作区总管：会自己拆活派活、把结果带回来交给你的桌面伙伴",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "start": "node server/index.mjs",
+    "start:node22": "node --experimental-sqlite server/index.mjs",
+    "pet": "npm --prefix pet start",
+    "verify": "node scripts/verify.mjs",
+    "verify:full": "node scripts/verify.mjs --full",
+    "check": "node scripts/check-secrets.mjs"
+  }
+}

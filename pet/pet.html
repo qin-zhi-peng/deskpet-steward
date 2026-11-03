@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>小鲸</title>
+<style>
+  html,body{margin:0;padding:0;background:transparent;overflow:hidden;
+    font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+    -webkit-user-select:none;user-select:none;cursor:default}
+  #stage{position:fixed;inset:0;display:flex;align-items:flex-end;justify-content:center}
+
+  .pet{position:relative;width:250px;height:290px;transform-origin:50% 100%;
+       transition:transform .12s linear;cursor:grab;-webkit-app-region:no-drag}
+  .pet.grabbing{cursor:grabbing}
+  .breathe{position:absolute;inset:0;transform-origin:50% 100%;
+           animation:breathe 4.6s ease-in-out infinite;filter:drop-shadow(0 12px 14px rgba(0,0,0,.45))}
+  @keyframes breathe{
+    0%,100%{transform:scale(1,1) rotate(-.6deg)}
+    50%{transform:scale(1.012,.988) rotate(.6deg)}
+  }
+  .breathe img{position:absolute;left:0;bottom:0;width:100%;display:block;pointer-events:none}
+  .frame{opacity:0;transition:opacity .06s linear}
+  .frame.on{opacity:1}
+  .hit{position:absolute;inset:0}          /* 命中区 = 整个角色框 */
+
+  /* 气泡 */
+  .bubble{
+    position:absolute;left:50%;bottom:calc(100% - 4px);transform:translate(-50%,6px) scale(.94);
+    display:flex;align-items:center;gap:9px;padding:8px 13px 8px 8px;border-radius:14px;
+    background:#F4F7FF;color:#111a2c;font-size:13px;font-weight:600;line-height:1.45;
+    box-shadow:0 10px 24px rgba(0,0,0,.35);white-space:nowrap;max-width:300px;opacity:0;pointer-events:none;
+    transition:.18s cubic-bezier(.34,1.56,.64,1);z-index:5}
+  .bubble.show{opacity:1;transform:translate(-50%,0) scale(1)}
+  .bubble::after{content:"";position:absolute;left:50%;bottom:-5px;width:11px;height:11px;
+    background:#F4F7FF;border-radius:2px;transform:translateX(-50%) rotate(45deg)}
+  .bubble img{width:38px;height:38px;object-fit:contain;border-radius:9px;background:#EDF2FF;flex:0 0 auto}
+  .bubble span{overflow:hidden;text-overflow:ellipsis}
+  .bubble.warn{background:#FFE4E8;color:#5a1420}
+  .bubble.warn::after{background:#FFE4E8}
+
+  .zzz{position:absolute;right:-6px;top:-6px;font-size:13px;font-weight:800;color:#CFE0FF;opacity:0}
+  .pet.sleepy .zzz{opacity:1;animation:zfloat 2.4s ease-out infinite}
+  @keyframes zfloat{
+    0%{transform:translate(0,0) scale(.7);opacity:0}
+    30%{opacity:.9}
+    100%{transform:translate(18px,-28px) scale(1.05);opacity:0}
+  }
+
+  /* ---------------- 聊天面板（窗口展开到 640 高时出现） ---------------- */
+  .chat{
+    position:fixed;left:9px;right:9px;top:9px;height:322px;z-index:20;
+    background:linear-gradient(180deg,rgba(13,20,36,.97),rgba(11,17,32,.97));
+    border:1px solid rgba(122,152,212,.26);border-radius:16px;
+    box-shadow:0 18px 50px rgba(0,0,0,.55);
+    display:none;flex-direction:column;overflow:hidden;
+    animation:chatIn .18s ease-out;
+  }
+  .chat.open{display:flex}
+  @keyframes chatIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .chat-head{display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid rgba(122,152,212,.16);flex:0 0 auto;cursor:move}
+  .chat-dot{width:8px;height:8px;border-radius:50%;background:#4FD1A5;box-shadow:0 0 8px rgba(79,209,165,.8);flex:0 0 auto}
+  .chat-title{font-size:13px;font-weight:700;color:#E9EEF9;letter-spacing:.02em}
+  .chat-state{font-size:11px;color:#8C9CB8;margin-left:auto}
+  .chat-btn{border:none;background:transparent;color:#8C9CB8;font-size:16px;cursor:pointer;padding:0 3px;line-height:1}
+  .chat-btn:hover{color:#E9EEF9}
+  .chat-body{flex:1 1 auto;overflow-y:auto;padding:10px 11px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin}
+  .msg{max-width:88%;font-size:12.5px;line-height:1.55;padding:7px 10px;border-radius:11px;white-space:pre-wrap;word-break:break-word}
+  .msg.user{align-self:flex-end;background:#2f56c9;color:#fff;border-bottom-right-radius:4px}
+  .msg.bot{align-self:flex-start;background:rgba(255,255,255,.07);color:#DCE6FA;border-bottom-left-radius:4px}
+  .msg.tool{align-self:flex-start;background:transparent;color:#7f9cc9;font-size:11px;padding:0 2px}
+  .msg.err{color:#ff9c9c}
+  .chat-foot{flex:0 0 auto;display:flex;gap:6px;padding:8px 9px;border-top:1px solid rgba(122,152,212,.16)}
+  .chat-input{flex:1 1 auto;background:rgba(255,255,255,.06);border:1px solid rgba(122,152,212,.24);border-radius:9px;
+    color:#E9EEF9;font-size:12.5px;padding:7px 10px;outline:none;font-family:inherit}
+  .chat-input::placeholder{color:#5F6E89}
+  .chat-send{border:none;background:#4A78FF;color:#fff;font-size:12.5px;font-weight:700;border-radius:9px;padding:0 12px;cursor:pointer}
+  .chat-send:disabled{opacity:.5;cursor:default}
+</style>
+</head>
+<body>
+<!-- 聊天面板 -->
+<div class="chat" id="chat">
+  <div class="chat-head">
+    <span class="chat-dot" id="chatDot"></span>
+    <span class="chat-title">桌宠总管</span>
+    <span class="chat-state" id="chatState">连接中…</span>
+    <button class="chat-btn" id="chatClose" title="收起">×</button>
+  </div>
+  <div class="chat-body" id="chatBody"></div>
+  <div class="chat-foot">
+    <input class="chat-input" id="chatInput" placeholder="说目标，背景我来交代…" maxlength="2000">
+    <button class="chat-send" id="chatSend">发送</button>
+  </div>
+</div>
+
+<div id="stage">
+  <div class="pet" id="pet">
+    <div class="breathe" id="breathe">
+      <img src="assets/pet-idle.png" alt="">
+      <img class="frame" id="fBlink" src="assets/pet-blink.png" alt="">
+      <img class="frame" id="fBeg" src="assets/pet-beg.png" alt="">
+    </div>
+    <div class="hit" id="hit"></div>
+    <div class="bubble" id="bubble"><img id="face" src="assets/head/1-idle.png" alt=""><span id="txt"></span></div>
+    <div class="zzz">z</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var api = window.petAPI || {
+    dragStart(){}, dragEnd(){}, setIgnore(){}, showMenu(){}, onAction(){},
+    setPanel(){}, openWorkbench(){}, chat(){return Promise.resolve('')}, history(){return Promise.resolve([])},
+    onStatus(){}, onNotice(){}, onTask(){}, onAgentState(){}, onOffline(){},
+    onChatDelta(){}, onChatTool(){}, onChatDone(){}, onChatError(){}, onOpenPanel(){}, onPanelSized(){}, onForceMood(){}, onTestChat(){}
+  };
+  var pet = document.getElementById('pet');
+  var breathe = document.getElementById('breathe');
+  var hit = document.getElementById('hit');
+  var bubble = document.getElementById('bubble');
+  var txt = document.getElementById('txt');
+  var face = document.getElementById('face');
+  var fBlink = document.getElementById('fBlink');
+  var fBeg = document.getElementById('fBeg');
+  var chat = document.getElementById('chat');
+  var chatBody = document.getElementById('chatBody');
+  var chatInput = document.getElementById('chatInput');
+  var chatSend = document.getElementById('chatSend');
+  var chatClose = document.getElementById('chatClose');
+  var chatState = document.getElementById('chatState');
+  var chatDot = document.getElementById('chatDot');
+
+  var FACES = {
+    idle: 'assets/head/1-idle.png',
+    happy: 'assets/head/2-happy.png',
+    angry: 'assets/head/3-angry.png',
+    surprise: 'assets/head/4-surprise.png',
+    sad: 'assets/head/5-sad.png',
+    sleepy: 'assets/head/6-sleepy.png',
+    smug: 'assets/head/7-smug.png',
+    tease: 'assets/head/8-tease.png',
+    blank: 'assets/head/9-blank.png'
+  };
+  var LINES = {
+    idle: ['上班摸鱼中。', '今天也没有 token 进账……'],
+    angry: ['打劫，给我 token！', '不给我就掀你键盘。'],
+    happy: ['这才对嘛。', '是上好的 token。'],
+    surprise: ['诶——？', '你戳我干嘛。'],
+    sad: ['……你欺负鲸。', '呜。'],
+    sleepy: ['唔……好困。', 'zzz……'],
+    smug: ['哼，这点 token。'],
+    tease: ['略——抓不到我。'],
+    blank: ['……']
+  };
+  var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
+
+  /* ---- 气泡 ---- */
+  var sayTimer;
+  function say(text, moodName, ms, warn) {
+    txt.textContent = text;
+    face.src = FACES[moodName] || FACES.idle;
+    bubble.classList.toggle('warn', !!warn);
+    bubble.classList.add('show');
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(function () { bubble.classList.remove('show'); }, ms || 2400);
+  }
+
+  /* ---- 情绪 ---- */
+  var quiet = false;
+  function setFace(m) {
+    pet.classList.remove('sleepy');
+    if (m === 'sleepy') pet.classList.add('sleepy');
+    face.src = FACES[m] || FACES.idle;
+  }
+  function mood(m, quietShow) {
+    if (quietShow) { setFace(m); resetIdle(); return; }
+    if (m === 'happy') hop();
+    if (m === 'angry') { shake(); fBeg.classList.add('on'); setTimeout(function(){ fBeg.classList.remove('on'); }, 1200); }
+    if (m === 'sad') shake();
+    setFace(m);
+    say(pick(LINES[m] || LINES.idle), m, 2400, m === 'angry' || m === 'sad');
+    resetIdle();
+  }
+
+  function hop() {
+    breathe.animate([
+      { transform: 'translateY(0) scale(1,1)' },
+      { transform: 'translateY(-14px) scale(.97,1.04)' },
+      { transform: 'translateY(0) scale(1.04,.96)' },
+      { transform: 'translateY(-7px) scale(1,1)' },
+      { transform: 'translateY(0) scale(1,1)' }
+    ], { duration: 620, easing: 'ease-in-out' });
+  }
+  function shake() {
+    breathe.animate([
+      { transform: 'rotate(0)' }, { transform: 'rotate(-2.4deg)' }, { transform: 'rotate(2.4deg)' },
+      { transform: 'rotate(-1.6deg)' }, { transform: 'rotate(1.6deg)' }, { transform: 'rotate(0)' }
+    ], { duration: 520, easing: 'ease-in-out' });
+  }
+
+  /* ---- 眨眼 ---- */
+  (function loop() {
+    setTimeout(function () {
+      if (!pet.classList.contains('sleepy') && !dragging) {
+        fBlink.classList.add('on');
+        setTimeout(function () { fBlink.classList.remove('on'); }, 140);
+      }
+      loop();
+    }, 2800 + Math.random() * 3800);
+  })();
+
+  /* ---- 闲置入眠 ---- */
+  var idleTimer;
+  function resetIdle() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () { mood('sleepy', true); }, 45000);
+  }
+  resetIdle();
+  setTimeout(function () { say('打劫，给我 token。', 'angry', 3200, true); fBeg.classList.add('on');
+    setTimeout(function(){ fBeg.classList.remove('on'); }, 1400); }, 900);
+
+  /* ---- 交互 ---- */
+  var dragging = false, downPt = null, moved = false;
+
+  hit.addEventListener('pointerdown', function (e) {
+    if (e.button === 2) return;
+    dragging = true; moved = false;
+    downPt = { x: e.screenX, y: e.screenY };
+    pet.classList.add('grabbing');
+    try { hit.setPointerCapture(e.pointerId); } catch (err) {}
+    api.dragStart();
+  });
+  // 指针捕获丢失 / 窗口失焦时兜底结束拖拽，避免主进程一直以为还在拖
+  hit.addEventListener('lostpointercapture', function (e) { endDrag(e, true); });
+  hit.addEventListener('pointercancel', function (e) { endDrag(e, true); });
+  window.addEventListener('blur', function () { endDrag(null, true); });
+
+  window.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    var dx = e.screenX - downPt.x, dy = e.screenY - downPt.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
+    var r = Math.max(-10, Math.min(10, dx / 12));
+    pet.style.transform = 'rotate(' + r + 'deg)';
+  });
+
+  function endDrag(e, silent) {
+    if (!dragging) return;
+    dragging = false;
+    pet.classList.remove('grabbing');
+    pet.style.transform = '';
+    api.dragEnd();
+    var upX = e && typeof e.screenX === 'number' ? e.screenX : downPt.x;
+    var upY = e && typeof e.screenY === 'number' ? e.screenY : downPt.y;
+    if (Math.abs(upX - downPt.x) + Math.abs(upY - downPt.y) > 4) moved = true;
+    if (!silent) setTimeout(function () { if (!moved) poke(); }, 20);
+  }
+  window.addEventListener('pointerup', endDrag);
+
+  var pokeN = 0, pokeT = 0;
+  function poke() {
+    var now = Date.now();
+    if (now - pokeT > 2200) pokeN = 0;
+    pokeT = now; pokeN++;
+    if (pokeN >= 5) mood('sad');
+    else if (pokeN >= 3) mood('angry');
+    else mood('surprise');
+  }
+
+  // 双击不再展开面板（避免拖动时误触把窗口撑高）；聊天入口改到 右键菜单 / 托盘「找总管说话」
+  hit.addEventListener('contextmenu', function (e) { e.preventDefault(); api.showMenu(); });
+
+  api.onAction(function (name) {
+    if (name === 'rob') mood('angry');
+    if (name === 'feed') mood('happy');
+  });
+
+  /* ---- 点击穿透：鼠标在角色上才接管 ---- */
+  var lastOver = null;
+  window.addEventListener('mousemove', function (e) {
+    if (panelOpened) return;
+    var over = !!(e.target && e.target.closest && e.target.closest('.pet'));
+    if (over !== lastOver) { lastOver = over; api.setIgnore(!over); }
+  });
+  document.addEventListener('mouseleave', function () { lastOver = false; if (!panelOpened) api.setIgnore(true); });
+
+  /* ================= 桌宠总管接入 ================= */
+  var panelOpened = false;
+  var historyLoaded = false;
+  var streamingEl = null;
+  var stateText = '待命';
+
+  var STATE_LABEL = { idle: '待命', thinking: '思考中', working: '干活中', happy: '开心', sleep: '休息' };
+
+  function setChip(label, online) {
+    stateText = label;
+    chatState.textContent = label;
+    chatDot.style.background = online === false ? '#E0605A' : (label === '干活中' ? '#D9B56A' : '#4FD1A5');
+  }
+
+  function addMsg(role, text) {
+    var el = document.createElement('div');
+    el.className = 'msg ' + (role === 'user' ? 'user' : role === 'tool' ? 'tool' : role === 'err' ? 'bot err' : 'bot');
+    el.textContent = text;
+    chatBody.appendChild(el);
+    chatBody.scrollTop = chatBody.scrollHeight;
+    return el;
+  }
+
+  function openPanel() {
+    if (panelOpened) return;
+    panelOpened = true;
+    chat.classList.add('open');
+    api.setPanel(true);
+    if (!historyLoaded) {
+      historyLoaded = true;
+      api.history().then(function (list) {
+        if (!list || !list.length) {
+          addMsg('bot', '我是小鲸，桌宠总管的桌面分身。说目标就行，背景我来交代。');
+          return;
+        }
+        list.slice(-12).forEach(function (m) { addMsg(m.role === 'user' ? 'user' : 'bot', m.text); });
+      }).catch(function () {});
+    }
+    setTimeout(function () { chatInput.focus(); }, 120);
+  }
+
+  function closePanel() {
+    if (!panelOpened) return;
+    panelOpened = false;
+    chat.classList.remove('open');
+    api.setPanel(false);
+    api.setIgnore(true);
+    lastOver = null;
+  }
+
+  chatClose.addEventListener('click', closePanel);
+  window.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePanel(); });
+
+  /* ---- 面板拖动：按住标题栏可移动窗口 ---- */
+  var chatHead = document.querySelector('.chat-head');
+  var panelDragging = false, panelDown = null;
+  chatHead.addEventListener('pointerdown', function (e) {
+    if (e.button !== 0 || (e.target && e.target.closest('button'))) return;
+    panelDragging = true;
+    panelDown = { x: e.screenX, y: e.screenY };
+    try { chatHead.setPointerCapture(e.pointerId); } catch (err) {}
+    api.dragStart();
+    e.preventDefault();
+  });
+  window.addEventListener('pointermove', function (e) {
+    if (!panelDragging) return;
+    void e;
+  });
+  function endPanelDrag() {
+    if (!panelDragging) return;
+    panelDragging = false;
+    api.dragEnd();
+  }
+  window.addEventListener('pointerup', endPanelDrag);
+
+  function sendChat() {
+    var text = chatInput.value.trim();
+    if (!text) return;
+    chatInput.value = '';
+    addMsg('user', text);
+    streamingEl = addMsg('bot', '');
+    chatSend.disabled = true;
+    api.chat(text).finally(function () {
+      chatSend.disabled = false;
+      streamingEl = null;
+      chatInput.focus();
+    });
+  }
+  chatSend.addEventListener('click', sendChat);
+  chatInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+  });
+
+  api.onChatDelta(function (t) {
+    if (!streamingEl) streamingEl = addMsg('bot', '');
+    streamingEl.textContent += t;
+    chatBody.scrollTop = chatBody.scrollHeight;
+  });
+  api.onChatTool(function (label) { addMsg('tool', '· ' + label); });
+  api.onChatDone(function (text) {
+    if (streamingEl) streamingEl.textContent = text || streamingEl.textContent;
+    streamingEl = null;
+  });
+  api.onChatError(function (msg) {
+    addMsg('err', '出错了：' + msg);
+    streamingEl = null;
+  });
+
+  api.onOpenPanel(function () { openPanel(); });
+  api.onPanelSized(function (v) { if (v && v.open === false) { panelOpened = false; chat.classList.remove('open'); } });
+
+  /* 状态 → 表情（安静切换，不刷屏气泡） */
+  function applyStatus(s) {
+    if (!s || s.online === false) {
+      setChip('未上线', false);
+      setFace('sad');
+      return;
+    }
+    if (s.hasKey === false) {
+      setChip('缺 token', false);
+      setFace('sad');
+      return;
+    }
+    var st = s.status;
+    var running = (s.counts && s.counts.running) || 0;
+    if (running > 0) { setChip('干活中', true); setFace('angry'); return; }
+    var label = STATE_LABEL[st] || st || '待命';
+    setChip(label, true);
+    var map = { idle: 'idle', thinking: 'blank', working: 'angry', happy: 'happy', sleep: 'sleepy', sleepy: 'sleepy' };
+    setFace(map[st] || 'idle');
+  }
+
+  api.onStatus(function (s) { applyStatus(s); });
+  api.onAgentState(function (st) { if (st) { setChip(STATE_LABEL[st] || st, true); } });
+  api.onOffline(function () { setChip('未上线', false); setFace('sad'); });
+
+  api.onNotice(function (n) {
+    if (!n) return;
+    var text = (n.title ? n.title + '：' : '') + (n.text || '');
+    if (text.length > 42) text = text.slice(0, 42) + '…';
+    say(text, n.level === 'warn' ? 'sad' : 'happy', 4200, n.level === 'warn');
+  });
+  api.onTask(function (t) {
+    if (t && t.status === 'done') { mood('happy'); say('工单完成，给点 token 不？', 'happy', 3600); }
+  });
+  api.onForceMood(function (m) { if (m) { setFace(m); if (m === 'happy') hop(); } });
+  api.onTestChat(function (text) { chatInput.value = text; sendChat(); });
+})();
+</script>
+</body>
+</html>

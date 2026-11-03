@@ -1,0 +1,24 @@
+{
+  "agent": {
+    "name": "桌宠总管",
+    "no": "No.001",
+    "tagline": "我的工作区 · 本地总管"
+  },
+  "server": {
+    "port": 8795,
+    "host": "127.0.0.1"
+  },
+  "model": {
+    "name": "deepseek-chat",
+    "base": "",
+    "proxyBase": "http://127.0.0.1:8787"
+  },
+  "roots": [
+    { "key": "work", "kind": "career", "name": "工作区", "path": "~/work", "depth": 2 },
+    { "key": "projects", "kind": "projects", "name": "项目", "path": "~/projects", "depth": 2 },
+    { "key": "notes", "kind": "notes", "name": "笔记", "path": "~/notes", "depth": 1 },
+    { "key": "skills", "kind": "skills", "name": "技能库", "path": "~/.config/deskpet-steward/skills", "depth": 1 }
+  ],
+  "writeRoots": ["~/projects", "~/notes"],
+  "readOnly": []
+}
